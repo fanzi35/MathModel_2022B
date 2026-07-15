@@ -622,11 +622,14 @@ L\left(X^{(t+1)}\right)\le L\left(X^{(t)}\right),
 
 根据代码实现结果，在题目给定初始数据下，该方法共进行 $15$ 轮迭代，每轮选择的发射机如下：
 \begin{table}[H]
-% \centering \caption{各轮贪心发射机选择结果} \label{tab:q1_round_choice}
-% \begin{tabular}{cccc}
-% \toprule 轮次 & 发射机组合 & 调整后损失 & 接收机数量 \ \midrule \multicolumn{4}{c}{此处插入表格内容} \ \bottomrule
-% \end{tabular}
-% \end{table}
+    \centering
+    \caption{每轮发射无人机编号}
+    \label{tab:position_velocity}
+
+    \csvautotabular{
+    outputs/tables/greedy_round_selection.csv
+    }
+\end{table}
 
 然后达到收敛，最终损失为
 \begin{equation}
@@ -634,21 +637,21 @@ L\left(X^{(15)}\right)=
 4.83581741\times 10^{-5} < 10^{-4}.
 \end{equation}
 并列出无人机调整后位置:
-% % 表格位置说明：此处建议插入“最终状态结果表” \begin{table}[H]
-% \centering \caption{收敛后无人机极坐标结果} \label{tab:q1_final_state}
-% \begin{tabular}{ccc}
-% \toprule 无人机编号 & 极径 & 极角 \ \midrule \multicolumn{3}{c}{此处插入表格内容} \ \bottomrule
-% \end{tabular}
-% \end{table}
+\begin{table}[H]
+    \centering
+    \caption{最终状态无人机状态信息}
+    \label{tab:position_velocity}
+
+    \csvautotabular{
+    outputs/tables/final_result_table.csv
+    }
+\end{table}
 这一结果说明，无人机已经可以认为恢复到了理想位置，我们针对这一任务所建立的模型和策略能够在发射机数量受限的条件下有效恢复目标编队。需要指出的是，由于辅助发射机的真实位置被其理想位置代替，因此每轮调整并不保证接收机一次精确归位。但根据图？？？可以发现，经过一轮的迭代就可以极大的缩小损失函数的值，使整体编队相当接近理想状态，在多步迭代后近似误差逐步减小，从而保证了模型最终收敛。
 
-最终无人机状态示意图与各无人机调整过程示意如下：
-% \begin{figure}[H]
-% \centering \includegraphics[width=0.88\textwidth]{此处替换为图片路径} \caption{多轮调整轨迹图} \label{fig:q1_trajectory}
-% \end{figure}
-% % 图片位置说明：此处建议插入“最终编队位置示意图” \begin{figure}[H]
-% \centering \includegraphics[width=0.72\textwidth]{此处替换为图片路径} \caption{最终编队位置示意图} \label{fig:q1_final}
-% \end{figure}
+最终无人机状态示意图如下：
+\begin{figure}[H]
+\centering \includegraphics[width=0.66\textwidth]{outputs/figures/q1_final_formation.png} \caption{最终编队位置示意图} \label{fig:q1_final}
+\end{figure}
 
 \subsection{问题二的模型建立与求解}
 \subsubsection{模型建立}
