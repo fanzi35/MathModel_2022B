@@ -512,8 +512,8 @@ def save_q2_outputs(
     final_path: Path,
 ) -> None:
     """保存第二问表格输出。"""
-    initial_table.to_excel(initial_path, index=False)
-    final_table.to_excel(final_path, index=False)
+    initial_table.to_csv(initial_path, index=False, encoding="utf-8-sig")
+    final_table.to_csv(final_path, index=False, encoding="utf-8-sig")
 
 
 def main() -> None:
@@ -546,8 +546,8 @@ def main() -> None:
     initial_table = make_q2_state_table(initial_positions)
     final_table = make_q2_state_table(final_positions)
 
-    initial_table_path = TABLE_DIR / "q2_initial_state.xlsx"
-    final_table_path = TABLE_DIR / "q2_final_state.xlsx"
+    initial_table_path = TABLE_DIR / "q2_initial_state.csv"
+    final_table_path = TABLE_DIR / "q2_final_state.csv"
     group_figure_path = FIGURE_DIR / "q2_grouping.png"
     initial_figure_path = FIGURE_DIR / "q2_initial_state.png"
     final_figure_path = FIGURE_DIR / "q2_final_state.png"

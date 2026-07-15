@@ -329,9 +329,9 @@ def save_tables(
     result_table: pd.DataFrame,
 ) -> None:
     """保存结果表格。"""
-    angle_lookup_table.to_excel(TABLE_DIR / "angle_lookup_table.xlsx", index=False)
-    round_table.to_excel(TABLE_DIR / "greedy_round_selection.xlsx", index=False)
-    result_table.to_excel(TABLE_DIR / "final_result_table.xlsx", index=False)
+    angle_lookup_table.to_csv(TABLE_DIR / "angle_lookup_table.csv", index=False, encoding="utf-8-sig")
+    round_table.to_csv(TABLE_DIR / "greedy_round_selection.csv", index=False, encoding="utf-8-sig")
+    result_table.to_csv(TABLE_DIR / "final_result_table.csv", index=False, encoding="utf-8-sig")
 
 
 def verify_outputs(
