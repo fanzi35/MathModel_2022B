@@ -63,9 +63,9 @@
 
     \textbf{针对问题一(1)：}问题一（1）属于基于方向角信息的二维无源定位问题。本文以 FY00 为原点建立\textbf{平面直角坐标系}描述无人机位置关系，并利用\textbf{圆周角定理}将方向夹角约束转化为\textbf{定角圆约束}。通过构造两组独立角度对应的定角圆，利用\textbf{圆交点}确定接收无人机的位置。
 
-    \textbf{针对问题一(2)：}针对部分发射无人机编号未知的问题，利用圆形编队中无人机均匀分布形成的离散角度特征，建立基于方向夹角匹配的身份识别模型。通过分析不同无人机组合对应的理论夹角范围，实现未知发射无人机编号判定，并结合问题一（1）的定位模型完成偏移无人机的位置确定。结果表明，除已知的 FY00 和 FY01 外，仅需增加一架辅助发射无人机即可实现有效定位。
+    \textbf{针对问题一(2)：}针对部分发射无人机编号未知的问题，利用圆形编队中无人机均匀分布形成的\textbf{离散角度特征}，建立基于\textbf{方向夹角匹配}的身份识别模型。通过分析不同无人机组合对应的理论夹角范围，实现未知发射无人机编号判定，并结合问题一（1）的定位模型完成偏移无人机的位置确定。结果表明，除已知的 FY00 和 FY01 外，\textbf{仅需增加一架}辅助发射无人机即可实现有效定位。
 
-    \textbf{针对问题一(3)：}
+    \textbf{针对问题一(3)：}考虑到无人机位置调整的关键是通过\textbf{确定无人机的当前位置}来构建到理想位置的\textbf{位移向量}。所以我们利用接收无人机接收到的角度信息来\textbf{判断发射无人机的编号}，利用发射无人机的理想位置来假设其当前位置，复用问题一（1）的方法计算接收无人机的当前位置。并使用\textbf{贪心算法}的搜索策略，搜索每一轮所有可能的发射机组合并选择可以使\textbf{L2 loss损失函数}下降最快的组合作为每一轮的调整策略。最终得到仅需\textbf{15轮}调整即可将无人机近似调整到理想位置的调整策略。
 
     \textbf{针对问题二：}
 
@@ -117,6 +117,8 @@
 
 \subsection{问题一(3)分析}
 
+问题一（3）要求在无人机初始位置存在偏差的情况下，通过有限数量发射无人机提供的纯方位信息，实现圆形编队的逐步恢复。与问题一（1）中发射无人机位置已知不同，本问题中参与定位的辅助发射无人机同样可能存在位置偏移，因此无法直接利用真实坐标建立精确定位模型。考虑到无人机偏差较小，本文首先建立理想圆形编队模板，将实际位置视为理想位置附近的小扰动，并利用问题一（1）中的定角圆定位方法估计接收无人机当前位置。在获得当前位置估计后，根据理想位置与估计位置之间的差值构造调整向量，实现无人机位置修正。同时，为降低单次调整误差，本文设计基于误差最小化的发射机选择策略，在满足发射数量约束的条件下，通过比较不同发射组合调整后的队形误差，选择最优组合进行下一轮调整，最终通过多轮迭代使无人机恢复均匀圆形编队。
+
 \subsection{问题二分析}
 
 
@@ -125,8 +127,8 @@
 \subsection{模型假设}
 \begin{enumerate}
     \item 无人机基于自身感知高度信息，保持同一高度，模型由此转为二维平面模型
-    \item 无人机位置的偏差是很小的
-    \item 
+    \item 无人机位置略有偏差视为无人机的位置仅在理想位置附近出现小扰动
+    \item 每个无人机知道自己的编号
     \item 
     
 \end{enumerate}
@@ -143,8 +145,7 @@
 \toprule
 符号 & 说明 & 单位 \\
 \midrule
-$\rho$ & 极径 & m \\
-$\theta$ & 极角 & rad \\
+$\theta_{ijk}$ & 无人机FY0k接收来自FY0i和FY0j的信号形成的角度 & rad \\
 \bottomrule
 \end{tabular}
 
@@ -157,22 +158,7 @@ $\theta$ & 极角 & rad \\
 
 %%%%%模型建立与求解%%%%%
 \section{模型建立与求解}
-\subsection{问题一(1)的模型建立与求解}
-\subsubsection{模型建立}
-以FY00为原点，建立平面直角坐标系，则FY00坐标为$O(0,0)$，设圆周半径为R，记第i架无人机为
-\begin{equation}
-    P_i=(Rcos\theta_i, Rsin\theta_i)
-\end{equation}
-其中：
-\begin{equation}
-    \theta_i=(i-1)\frac{2\pi}{9}
-\end{equation}
-设接收信号的无人机的位置坐标为$(\rho cos\theta,\rho sin \theta)$,
-
-\subsubsection{求解过程与结果}
-
-\subsection{问题一(2)的求解}
-\subsubsection{引理与证明}
+\subsection{引理与证明}
 \begin{enumerate}
 \item \textbf{引理}
 
@@ -194,7 +180,249 @@ $\theta$ & 极角 & rad \\
 \end{figure}
 \end{enumerate}
 
-\subsubsection{问题求解}
+\subsection{问题一(1)的模型建立与求解}
+以FY00为原点，建立平面直角坐标系，则FY00坐标为$O(0,0)$，设圆周半径为R，记第i架无人机为
+\begin{equation}
+    P_i=(Rcos\theta_i, Rsin\theta_i)
+\end{equation}
+其中：
+\begin{equation}
+    \theta_i=(i-1)\frac{2\pi}{9}
+\end{equation}
+因为发射和接受信号的无人机编号是已知的，所以根据引理，我们可以将接受信号的无人机接受到的三个位置信息区分开来，即确定出每个角度是接受信号无人机与哪两架无人机连线形成的角度。我们设发射信号的无人机为FY0i和FY0j，接收信号的无人机编号是FY0k，$\angle \theta_{0ki}=\alpha_1,\angle \theta_{0kj}=\alpha_2$。接下来我们根据FY00，FY0i的坐标和$\alpha_1$做圆$\Gamma_1$，根据正弦定理，这个圆的半径为
+\begin{equation}
+    r=\frac{R}{2sin\alpha_1}
+\end{equation}
+由于圆心肯定在FY00和FY0i连线的垂直平分线上，
+线段 $OP_i$ 的中点为
+\begin{equation}
+M_i=
+\left(
+\frac{R}{2}\cos\theta_i,
+\frac{R}{2}\sin\theta_i
+\right).
+\end{equation}
+由 FY00 指向 FY0$i$ 的单位方向向量为
+\begin{equation}
+\boldsymbol e_i=
+\left(
+\cos\theta_i,\sin\theta_i
+\right),
+\end{equation}
+则与其垂直的单位法向量可表示为
+\begin{equation}
+\boldsymbol n_i=
+\left(
+-\sin\theta_i,\cos\theta_i
+\right).
+\end{equation}
+由于圆心位于线段 $OP_i$ 的垂直平分线上，圆心到中点
+$M_i$ 的距离为
+\begin{equation}
+h_1
+=
+\sqrt{
+r_1^2-\left(\frac{R}{2}\right)^2
+}
+=
+\frac{R}{2}\left|\cot\alpha_1\right|.
+\end{equation}
+因此，圆 $\Gamma_1$ 的两个可能圆心分别为
+\begin{equation}
+O_{11}
+=
+M_i+h_1\boldsymbol n_i
+=
+\left(
+\frac{R}{2}\cos\theta_i-h_1\sin\theta_i,
+\frac{R}{2}\sin\theta_i+h_1\cos\theta_i
+\right),
+\end{equation}
+
+\begin{equation}
+O_{12}
+=
+M_i-h_1\boldsymbol n_i
+=
+\left(
+\frac{R}{2}\cos\theta_i+h_1\sin\theta_i,
+\frac{R}{2}\sin\theta_i-h_1\cos\theta_i
+\right).
+\end{equation}
+所以圆$\Gamma_{11}$的一般方程为
+\begin{equation}
+x^2+y^2
+-
+R\left(
+\cos\theta_i-\cot\alpha_1\sin\theta_i
+\right)x
+-
+R\left(
+\sin\theta_i+\cot\alpha_1\cos\theta_i
+\right)y
+=0.
+\end{equation}
+$\Gamma_{12}$的一般方程为
+\begin{equation}
+x^2+y^2
+-
+R\left(
+\cos\theta_i+\cot\alpha_1\sin\theta_i
+\right)x
+-
+R\left(
+\sin\theta_i-\cot\alpha_1\cos\theta_i
+\right)y
+=0.
+\end{equation}
+类似地，由FY00，FY0j的坐标以及$\alpha_2$确定的圆$\Gamma_{21}$的一般方程为
+\begin{equation}
+x^2+y^2
+-
+R\left(
+\cos\theta_j-\cot\alpha_2\sin\theta_j
+\right)x
+-
+R\left(
+\sin\theta_j+\cot\alpha_2\cos\theta_j
+\right)y
+=0,
+\end{equation}
+圆$\Gamma_{22}$的一般方程为
+\begin{equation}
+x^2+y^2
+-
+R\left(
+\cos\theta_j+\cot\alpha_2\sin\theta_j
+\right)x
+-
+R\left(
+\sin\theta_j-\cot\alpha_2\cos\theta_j
+\right)y
+=0.
+\end{equation}
+
+由于FY0k和FY00都既在圆$\Gamma_1$上，又在$\Gamma_2$上，所以两圆的交点分别是FY00和FY0k，所以将两圆的方程联立后求得的两个解一个是(0,0)，另一个就是FY0k的位置坐标。同时由于两个圆都各有两个可能的方程，所以我们进行枚举求解。
+
+为统一表示两组定角圆，引入符号
+$s,t\in\{-1,1\}$。第一组定角圆表示为
+\begin{equation}
+\Gamma_1^{(s)}:
+\quad
+x^2+y^2-A_sx-B_sy=0,
+\end{equation}
+其中
+\begin{equation}
+A_s
+=
+R\left(
+\cos\theta_i-s\cot\alpha_1\sin\theta_i
+\right),
+\end{equation}
+\begin{equation}
+B_s
+=
+R\left(
+\sin\theta_i+s\cot\alpha_1\cos\theta_i
+\right).
+\end{equation}
+第二组定角圆表示为
+\begin{equation}
+\Gamma_2^{(t)}:
+\quad
+x^2+y^2-C_tx-D_ty=0,
+\end{equation}
+其中
+\begin{equation}
+C_t
+=
+R\left(
+\cos\theta_j-t\cot\alpha_2\sin\theta_j
+\right),
+\end{equation}
+\begin{equation}
+D_t
+=
+R\left(
+\sin\theta_j+t\cot\alpha_2\cos\theta_j
+\right).
+\end{equation}
+对于任意一组 $(s,t)$，联立两圆方程
+\begin{equation}
+\begin{cases}
+x^2+y^2-A_sx-B_sy=0,\\
+x^2+y^2-C_tx-D_ty=0.
+\end{cases}
+\end{equation}
+两式相减，得到
+\begin{equation}
+(C_t-A_s)x+(D_t-B_s)y=0.
+\end{equation}
+记
+\begin{equation}
+\Delta A_{st}=C_t-A_s,\qquad
+\Delta B_{st}=D_t-B_s,
+\end{equation}
+则该直线上的点可表示为
+\begin{equation}
+x=\lambda\Delta B_{st},\qquad
+y=-\lambda\Delta A_{st}.
+\end{equation}
+将其代入圆 $\Gamma_1^{(s)}$，得到
+\begin{equation}
+\lambda
+\left[
+\lambda
+\left(
+\Delta A_{st}^2+\Delta B_{st}^2
+\right)
+-
+\left(
+A_s\Delta B_{st}
+-
+B_s\Delta A_{st}
+\right)
+\right]
+=0.
+\end{equation}
+其中 $\lambda=0$ 对应公共交点 FY00，将其舍去。另一个解为
+\begin{equation}
+\lambda_{st}
+=
+\frac{
+A_s\Delta B_{st}-B_s\Delta A_{st}
+}{
+\Delta A_{st}^2+\Delta B_{st}^2
+}.
+\end{equation}
+因此，第 $(s,t)$ 种圆组合对应的非零交点为
+\begin{equation}
+P_{st}
+=
+\left(
+\lambda_{st}\Delta B_{st},
+-\lambda_{st}\Delta A_{st}
+\right).
+\end{equation}
+依次枚举
+\begin{equation}
+(s,t)\in
+\left\{
+(1,1),(1,-1),(-1,1),(-1,-1)
+\right\},
+\end{equation}
+即可得到接收无人机的候选位置集合 $\mathcal P$。
+
+由于位置偏差很小，所以对于每个候选点 $P_{st}$，计算其到理想位置的距离，再选择距离最小的那一个，就是位置有偏差的无人机的位置。下图为示例。
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{outputs/figures/intersecting_constant_angle_circles.png}
+    \caption{问题一(1)的情况示例}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsection{问题一(2)的求解}
+
 通过引理我们可以知道，对于一个无人机FY0i，其接收到其他无人机的方向信息应该是固定的。所以，对于这个位置略有偏差的无人机，设其为FY0i，我们可以知道它接收到来自FY00和FY01的方向信息为$\angle \theta_{0i1}=70^\circ-{20l_1}^\circ+d_1^\circ$，接收到来自FY00和编号未知但位置无偏差的无人机FY0j的方向信息为$\angle \theta_{0i1}=70^\circ-{20l_j}^\circ+d_2^\circ$,接收到来自FY01和FY0j的方向信息为$20k^\circ+d_3^\circ$,其中$l_1$表示FY01与FY0i之间间隔的顶点数量，其中$l_j$表示FY01与FY0j之间间隔的顶点数量，$d_1^\circ,d_2^\circ,d_3^\circ$表示其偏差值。
 
 所以我们可以根据FY0i收到的三个角度的大致范围，先根据其是10的奇数倍还是偶数倍来判断这些角度分别是来自哪两架无人机的位置信息，再根据FY0i和FY01的关系，将$l_1$和$l_j$区分开来。
@@ -240,19 +468,109 @@ x_i^{(t+1)}=x_i^{(t)}+u_i^{(t)}.
 \begin{equation}
 x_i^{(t+1)}=x_i^{*}.
 \end{equation}
-这说明在理想情况下，接收无人机可以一步到达理想位置,但是这一理想情况建立在发射无人机的坐标位置均明确的情况下。因此，问题的关键在于如何利用方向信息尽可能准确地估计当前位置，从而加快调整的速度。对于当前位置估计，本文沿用问题一(1)中的纯方位定位思想。设本轮接收机为 $FY0k$，已知准确发射机为 $FY00$ ，再选择若干圆周无人机作为辅助发射机。接收机可观测到由这些发射机构成的夹角信息。若所有发射机位置均已知，则可直接利用两组定角圆求交得到接收机位置。然而在本问中，额外辅助发射机的真实位置本身未知，因此不能直接代入这一精确模型。为解决这个困难，本文从偏差无人机均在理想槽位附近这一假设出发，先通过接收机接收到的角度信息识别发射无人机的编号，再用理想位置对其真实位置进行代换的近似思路进行求解。
-设当前接收机为 $FY0r$，候选辅助发射机为 $FY0i$，$FY0j$，$FY0k$中至多三个。在理想编队中，从 $FY0r$ 观察到 $FY0i$ 与 $FY0j$ 的夹角可记为
+这说明在理想情况下，接收无人机可以一步到达理想位置,但是这一理想情况建立在发射无人机的坐标位置均明确的情况下。因此，问题的关键在于如何利用方向信息尽可能准确地估计当前位置，从而加快调整的速度。对于当前位置估计，本文沿用问题一(1)中的纯方位定位思想。设本轮接收机为 $FY0k$，已知准确发射机为 $FY00$ ， $FY01$， 再选择若干圆周无人机作为辅助发射机。接收机可观测到由这些发射机构成的夹角信息。若所有发射机位置均已知，则可直接利用两组定角圆求交得到接收机位置。然而在本问中，额外辅助发射机的真实位置本身未知，因此不能直接代入这一精确模型。为解决这个困难，本文从偏差无人机均在理想槽位附近这一假设出发，先通过接收机接收到的角度信息识别发射无人机的编号，再用理想位置对其真实位置进行代换的近似思路进行求解。
+设当前接收机为 $FY0k$，位置准确的发射无人机$FY01$，候选辅助发射机为 $FY0i$，$FY0j$，中一至两个。在理想编队中，从 $FY0k$ 观察到 $FY01$ 与 $FY0i$ 的夹角可记为
 \begin{equation}
-\beta_{i,r,s}^{*}=
-\angle\left(x_1^{},x_r^{},x_s^{*}\right).
+\beta_{k,i}^{*}=
+\angle\left(x_1^{},x_k^{},x_i^{*}\right).
 \end{equation}
-对固定的接收机编号 $r$，不同候选发射机编号 $i$ 对应不同的理论特征角。由此可预先构造角度识别特征表，将观测角与理论角进行匹配。设实际观测值为 $\beta_r^{\mathrm{obs}}$，则可按最近邻原则识别辅助发射机编号：
+对固定的接收机编号 $k$，不同候选发射机编号 $i$ 对应不同的理论特征角。由此可预先构造角度识别特征表，将观测角与理论角进行匹配。设实际观测值为 $\beta_k^{\mathrm{obs}}$，则可按最近邻原则识别辅助发射机编号：
 \begin{equation}
-\hat{s}=
+\hat{i}=
+\arg\min_{i} \left| \beta_k^{\mathrm{obs}}-\beta_{k,i}^{*} \right|.
+\end{equation}
+
+下面对这一过程作推导与证明。
+设圆心无人机 $FY00$ 位于原点，$FY01$ 固定在极角 $0$ 的位置。对任意接收无人机 $FY0r$，其理想极角为
+\begin{equation}
+\theta_k^{*}=\frac{2\pi(r-1)}{9}.
+\end{equation}
+又设候选辅助发射机 $FY0i$ 的理想极角为
+\begin{equation}
+\theta_i^{*}=\frac{2\pi(i-1)}{9}.
+\end{equation}
+由于理想编队中所有圆周无人机均位于同一圆上，因此对固定接收机 $FY0k$ 而言，不同候选发射机 $FY0i$ 对应的几何差异完全由其相对极角差决定。故可将识别问题归结为：在接收机 $FY0k$ 处，比较由 $FY01$ 与不同候选发射机 $FY0i$ 所形成的夹角大小，并据此反推 $i$ 的取值。
+
+设理想位置下，$FY0k$ 观测到 $FY01$ 与 $FY0i$ 所形成的夹角为
+\begin{equation}
+\beta_{k,i}^{*}
+\angle\left(x_1^{},x_k^{},x_i^{*}\right).
+\end{equation}
+下面推导其解析表达式。由向量夹角公式，有
+\begin{equation}
+\cos \beta_{k,i}^{*}=
+\frac{ \left(x_1^{}-x_k^{}\right)\cdot\left(x_i^{}-x_k^{}\right) }{ \left|x_1^{}-x_k^{}\right| \left|x_i^{}-x_k^{}\right| }.
+\end{equation}
+代入圆周点表达式
+\begin{equation}
+x_k^{*}
+\begin{bmatrix} R\cos\theta_k^{}\ R\sin\theta_k^{} \end{bmatrix}, \qquad k=1,2,\dots,9,
+\end{equation}
+可得
+\begin{equation}
+x_1^{}-x_r^{}
+R \begin{bmatrix} \cos\theta_1^{}-\cos\theta_r^{}\ \sin\theta_1^{}-\sin\theta_r^{} \end{bmatrix},
+\end{equation}
+\begin{equation}
+x_s^{}-x_r^{}
+R \begin{bmatrix} \cos\theta_s^{}-\cos\theta_r^{}\ \sin\theta_s^{}-\sin\theta_r^{} \end{bmatrix}.
+\end{equation}
+将其代入内积，可得
+\begin{equation}
+\left(x_1^{}-x_r^{}\right)\cdot\left(x_s^{}-x_r^{}\right)
+R^2 \left[ (\cos\theta_1^{}-\cos\theta_r^{})(\cos\theta_s^{}-\cos\theta_r^{}) + (\sin\theta_1^{}-\sin\theta_r^{})(\sin\theta_s^{}-\sin\theta_r^{}) \right].
+\end{equation}
+利用恒等式
+$$ \cos a \cos b + \sin a \sin b = \cos(a-b), $$
+整理可得
+\begin{equation}
+\left(x_1^{}-x_r^{}\right)\cdot\left(x_s^{}-x_r^{}\right)
+R^2 \left[ 1-\cos(\theta_1^{}-\theta_r^{}) -\cos(\theta_s^{}-\theta_r^{}) +\cos(\theta_1^{}-\theta_s^{}) \right].
+\end{equation}
+同理，由弦长公式有
+\begin{equation}
+\left|x_1^{}-x_r^{}\right|
+2R\sin\frac{\left|\theta_1^{}-\theta_r^{}\right|}{2},
+\end{equation}
+\begin{equation}
+\left|x_s^{}-x_r^{}\right|
+2R\sin\frac{\left|\theta_s^{}-\theta_r^{}\right|}{2}.
+\end{equation}
+因此，$\beta_{r,s}^{*}$ 可以唯一写成关于 $(r,s)$ 的函数，即
+\begin{equation}
+\beta_{r,s}^{*}
+\arccos \left( \frac{ 1-\cos(\theta_1^{}-\theta_r^{}) -\cos(\theta_s^{}-\theta_r^{}) +\cos(\theta_1^{}-\theta_s^{}) }{ 4\sin\frac{\left|\theta_1^{}-\theta_r^{}\right|}{2} \sin\frac{\left|\theta_s^{}-\theta_r^{}\right|}{2} } \right).
+\end{equation}
+这说明：对于固定接收机 $FY0r$，不同候选发射机编号 $s$ 对应不同的理论角度值 $\beta_{r,s}^{*}$。因此，只要这些角度值彼此可区分，就能够依据观测角反推出辅助发射机编号。对固定 $r$ 而言，$FY01$ 的位置已知且不变，而不同的候选发射机 $FY0s$ 在圆周上对应不同的极角 $\theta_s^{}$。于是从接收机 $FY0r$ 处观察，点 $x_s^{}$ 沿圆周变化时，射线 $x_r^{}x_s^{}$ 也随之旋转，从而导致夹角 $\beta_{r,s}^{*}$ 发生变化。由于九架圆周无人机在理想状态下等间隔分布，因此除个别对称情况外，绝大多数 $s$ 对应不同的角度值；即使出现数值相近的情况，也可通过构造区间判定和最近邻匹配机制加以区分。
+为此，对固定 $r$，将全部候选值 $\beta_{r,s}^{*}$
+按从小到大排序，记排序后的结果为
+\begin{equation}
+\beta_{r,s_1}^{} < \beta_{r,s_2}^{} < \dots < \beta_{r,s_m}^{*},
+\end{equation}
+其中 $m$ 为候选辅助发射机个数。对其中第 $k$ 个候选发射机编号 $s_k$，定义其识别区间为
+\begin{equation}
+\ell_{r,s_k}
+\frac{\beta_{r,s_{k-1}}^{}+\beta_{r,s_k}^{}}{2}, \qquad u_{r,s_k}
+\frac{\beta_{r,s_k}^{}+\beta_{r,s_{k+1}}^{}}{2},
+\end{equation}
+其中边界情形取
+\begin{equation}
+\ell_{r,s_1}=0, \qquad u_{r,s_m}=\pi.
+\end{equation}
+这样便可将区间
+$$ (0,\pi) $$
+划分为若干互不重叠的子区间，每个区间对应一个候选辅助发射机编号。于是，若某轮观测角为 $\beta_r^{\mathrm{obs}}$，则可按如下判据识别编号：
+\begin{equation}
+\text{若 } \ell_{r,s}\le \beta_r^{\mathrm{obs}} \le u_{r,s}, \text{ 则判定辅助发射机编号为 } s.
+\end{equation}
+若观测值未严格落入某个唯一识别区间，则采用最近邻匹配原则，即
+\begin{equation}
+\hat{s}
 \arg\min_{s} \left| \beta_r^{\mathrm{obs}}-\beta_{r,s}^{*} \right|.
 \end{equation}
+
 当确定发射机编号以后，便可用该发射机的理想位置 $x_{\hat{s}}^{*}$ 替代其真实位置，从而构造近似位移向量。
-使用问题一（1）的模型，两组定角圆的非原点交点即为接收机当前位置的一个近似估计点，若本轮选择三架辅助发射机，则可得到两个估计点 。为了降低单个伪锚点近似带来的误差，本文通过取两个估计点的中点来近似接收机的位置。
+使用问题一（1）的模型，两组定角圆的非原点交点即为接收机当前位置的一个近似估计点，若本轮选择两架辅助发射机，则可得到两个估计点 。为了降低单个伪锚点近似带来的误差，本文通过取两个估计点的中点来近似接收机的位置。
 
 我们将每次选择发射机后将其他无人机的位置进行一次调整记为一轮调整，为了评价某一轮调整方案的优劣，定义全局损失函数为
 \begin{equation}
@@ -265,102 +583,72 @@ S_t^{*}=
 \arg\min_{S_t} L\left( \mathcal{T}_{S_t}\left(X^{(t)}\right) \right).
 \end{equation}
 这意味着在每一轮中，都从所有合法的辅助发射机组合中选取使下一轮全局损失最小的方案，即贪心算法。
-
-% % 表格位置说明：此处建议插入“角度识别特征表” \begin{table}[H]
-% \centering \caption{角度识别特征表} \label{tab:q1_lookup}
-% \begin{tabular}{cccc}
-% \toprule 接收机编号 & 候选发射机编号 & 理论角度 & 识别区间 \ \midrule \multicolumn{4}{c}{此处插入表格内容} \ \bottomrule
-% \end{tabular}
-% \end{table}
 \subsubsection{模型的求解}
-在上述模型的基础上，本文对问题一第(3)问进行了数值求解。求解过程由``数据预处理--候选方案枚举--单轮贪心更新--收敛判定''四部分组成。
-首先进行数据预处理。题目给出的初始位置以极坐标形式表示，设第 $i$ 架无人机的初始极坐标为 $(r_i^{(0)},\theta_i^{(0)})$，则其初始直角坐标为
-\begin{equation}
-x_i^{(0)}
-\begin{bmatrix} r_i^{(0)}\cos\theta_i^{(0)} \ r_i^{(0)}\sin\theta_i^{(0)} \end{bmatrix}, \qquad i=0,1,\dots,9.
-\end{equation}
-初始无人机位置状态如下
+确定模型后，首先进行数据预处理。题目给出的初始位置以极坐标形式表示，根据第 $i$ 架无人机的初始极坐标$(r_i^{(0)},\theta_i^{(0)})$确定其直角坐标，得到初始无人机位置状态如下：
 \begin{figure}[H]
-\centering \includegraphics[width=0.72\textwidth]{} \caption{初始编队位置示意图} \label{fig:q1_initial}
+\centering \includegraphics[width=0.72\textwidth]{outputs/figures/q1_initial_formation.png} \caption{初始编队位置示意图} \label{fig:q1_initial}
 \end{figure}
-与此同时，依据理想模板公式生成全部目标位置 ${x_i^{*}}$，并预先离线生成角度识别特征表。这样在后续每一轮中，只需将接收机观测角与该表进行匹配，即可快速确定未知辅助发射机的编号。
-\vspace{0.5em}
-其次，枚举每轮全部合法发射机方案。由于 $FY01$ 固定作为参考发射机，因此辅助发射机只需从其余外圈无人机中选取 $1$ 架或 $2$ 架。全部候选集合为
+与此同时，依据理想模板公式生成全部目标位置 ${x_i^{*}}$，并预先生成角度识别特征表。这样在后续每一轮中，只需将接收机观测角与该表进行匹配，即可快速确定未知辅助发射机的编号。
+
+然后依次枚举每轮全部合法发射机方案。从外圈无人机中选取 $2$ 架或 $3$ 架。全部候选集合为
 \begin{equation}
 \mathcal{S}
-\left\{ S\subseteq{FY02,\dots,FY09} \ \middle|
-1\le |S|\le 2 \right\}.
+\left\{ S\subseteq{FY01,\dots,FY09} \ \middle|
+2\le |S|\le 3 \right\}.
 \end{equation}
 对任意候选方案 $S\in\mathcal{S}$，按如下步骤进行一轮模拟更新：
 \begin{enumerate}
-\item 固定本轮发射机集合为 ${FY00,FY01}\cup S$； \item 对每架非发射机无人机，根据其观测角识别辅助发射机编号； \item 若本轮选择一架辅助发射机，则由两组定角圆构造一个估计点； \item 若本轮选择两架辅助发射机，则分别构造两个估计点，并取其中点作为当前位置估计； \item 由目标位置与当前位置估计之差构造移动向量，并更新无人机位置； \item 计算该候选方案调整后的全局损失值。
+\item 固定本轮发射机集合$S$； \item 对每架非发射机无人机，根据其观测角识别辅助发射机编号； \item 若本轮选择两架辅助发射机，则由两组定角圆构造一个估计点； \item 若本轮选择三架辅助发射机，则分别构造两个估计点，并取其中点作为当前位置估计； \item 由目标位置与当前位置估计之差构造移动向量，并更新无人机位置； \item 计算该候选方案调整后的全局损失值。
 \end{enumerate}
-其中，第 $r$ 架接收机在第 $t$ 轮的更新公式为
+其中，第 $i$ 架接收机在第 $t$ 轮的更新公式为
 \begin{equation}
-x_r^{(t+1)}=x_r^{(t)}+x_r^{*}-\hat{x}_r^{(t)}.
+x_i^{(t+1)}=x_i^{(t)}+x_i^{*}-\hat{x}_i^{(t)}.
 \end{equation}
-因此，若记在方案 $S$ 下的一轮更新结果为 $\mathcal{T}_{S}(X^{(t)})$，则该方案对应的损失为
+随后使用贪心算法，对所有合法方案逐一比较，选择使损失最小的方案作为本轮最优发射机组合。由于每一轮都优先选取使下一步误差下降最快的发射方案，因此该策略兼顾了求解效率与实现简洁性。
+
+接着给出收敛判据。设收敛阈值为$\varepsilon=10^{-4}$.当满足
 \begin{equation}
-J\left( \mathcal{T}_{S}\left(X^{(t)}\right) \right).
+L\left(X^{(t)}\right)<\varepsilon
 \end{equation}
-然后，对所有合法方案逐一比较，选择使损失最小的方案作为本轮最优发射机组合，即
+时，认为圆形编队已恢复到要求的精度范围内，停止迭代；否则继续执行下一轮贪心调整。由于每一轮都按最小化损失函数的原则选取发射机方案，因此有
 \begin{equation}
-S_t^{*}
-\arg\min_{S\in\mathcal{S}} J\left( \mathcal{T}_{S}\left(X^{(t)}\right) \right).
+L\left(X^{(t+1)}\right)\le L\left(X^{(t)}\right),
 \end{equation}
-这便构成了单轮贪心算法。由于每一轮都优先选取使下一步误差下降最快的发射方案，因此该策略兼顾了求解效率与实现简洁性。
-\vspace{0.5em}
-接着给出收敛判据。设收敛阈值为
-\begin{equation}
-\varepsilon=10^{-4}.
-\end{equation}
-当满足
-\begin{equation}
-J\left(X^{(t)}\right)<\varepsilon
-\end{equation}
-时，认为圆形编队已恢复到题目要求的精度范围内，停止迭代；否则继续执行下一轮贪心调整。由于每一轮都按``最小化下一轮损失''的原则选取发射机方案，因此有
-\begin{equation}
-J\left(X^{(t+1)}\right)\le J\left(X^{(t)}\right),
-\end{equation}
-即损失函数保持单调不增。这一性质在程序实现中也得到了逐轮验证。
-\vspace{0.5em}
-根据代码实现结果，在题目给定初始数据下，该方法共进行 $15$ 轮迭代后达到收敛，最终损失为
-\begin{equation}
-J\left(X^{(15)}\right)
-4.83581741\times 10^{-5} < 10^{-4}.
-\end{equation}
-这一结果说明，所建立的``角度识别--伪锚点定位--单轮贪心调整''模型能够在发射机数量受限的条件下有效恢复目标编队。需要指出的是，由于辅助发射机的真实位置被其理想位置代替，因此每轮调整并不保证接收机一次精确归位；但随着迭代进行，整体编队越来越接近理想状态，伪锚点近似误差逐步减小，从而保证了模型最终收敛。
-此外，若某一轮接收机位置估计完全准确，即有
-\begin{equation}
-\hat{x}_r^{(t)}=x_r^{(t)},
-\end{equation}
-则由更新公式立即可得
-\begin{equation}
-x_r^{(t+1)}=x_r^{*}.
-\end{equation}
-这表明本文方法在理论上具有明确的几何意义：它本质上是通过不断改进当前位置估计，逐步逼近``一步精确归位''的理想情形。
-% % 图片位置说明：此处建议插入“L2损失收敛曲线” \begin{figure}[H]
-% \centering \includegraphics[width=0.68\textwidth]{此处替换为图片路径} \caption{$L_2$ 损失收敛曲线} \label{fig:q1_loss}
-% \end{figure}
-% % 图片位置说明：此处建议插入“多轮调整轨迹图” \begin{figure}[H]
-% \centering \includegraphics[width=0.88\textwidth]{此处替换为图片路径} \caption{多轮调整轨迹图} \label{fig:q1_trajectory}
-% \end{figure}
-% % 图片位置说明：此处建议插入“最终编队位置示意图” \begin{figure}[H]
-% \centering \includegraphics[width=0.72\textwidth]{此处替换为图片路径} \caption{最终编队位置示意图} \label{fig:q1_final}
-% \end{figure}
-% % 表格位置说明：此处建议插入“每轮发射机选择结果表” \begin{table}[H]
+即损失函数保持单调递减。这一性质在程序实现中也得到了逐轮验证。
+
+\begin{figure}[H]
+\centering \includegraphics[width=0.68\textwidth]{outputs/figures/q1_l2_loss_curve.png} \caption{损失函数收敛曲线} \label{fig:q1_loss}
+\end{figure}
+
+根据代码实现结果，在题目给定初始数据下，该方法共进行 $15$ 轮迭代，每轮选择的发射机如下：
+\begin{table}[H]
 % \centering \caption{各轮贪心发射机选择结果} \label{tab:q1_round_choice}
 % \begin{tabular}{cccc}
 % \toprule 轮次 & 发射机组合 & 调整后损失 & 接收机数量 \ \midrule \multicolumn{4}{c}{此处插入表格内容} \ \bottomrule
 % \end{tabular}
 % \end{table}
+
+然后达到收敛，最终损失为
+\begin{equation}
+L\left(X^{(15)}\right)=
+4.83581741\times 10^{-5} < 10^{-4}.
+\end{equation}
+并列出无人机调整后位置:
 % % 表格位置说明：此处建议插入“最终状态结果表” \begin{table}[H]
 % \centering \caption{收敛后无人机极坐标结果} \label{tab:q1_final_state}
 % \begin{tabular}{ccc}
 % \toprule 无人机编号 & 极径 & 极角 \ \midrule \multicolumn{3}{c}{此处插入表格内容} \ \bottomrule
 % \end{tabular}
 % \end{table}
-综上，问题一第(3)问的求解过程可以概括为：先由题目数据与理想模板建立初始状态；再通过角度识别特征表识别辅助发射机编号；随后对全部合法发射机组合执行单轮贪心搜索，并利用伪锚点近似定位模型完成接收机位置修正；最后在全局损失函数小于阈值时停止迭代并输出结果。该方法满足题目中的发射机数量约束，同时具有清晰的几何解释与稳定的数值收敛性。
+这一结果说明，无人机已经可以认为恢复到了理想位置，我们针对这一任务所建立的模型和策略能够在发射机数量受限的条件下有效恢复目标编队。需要指出的是，由于辅助发射机的真实位置被其理想位置代替，因此每轮调整并不保证接收机一次精确归位。但根据图？？？可以发现，经过一轮的迭代就可以极大的缩小损失函数的值，使整体编队相当接近理想状态，在多步迭代后近似误差逐步减小，从而保证了模型最终收敛。
+
+最终无人机状态示意图与各无人机调整过程示意如下：
+% \begin{figure}[H]
+% \centering \includegraphics[width=0.88\textwidth]{此处替换为图片路径} \caption{多轮调整轨迹图} \label{fig:q1_trajectory}
+% \end{figure}
+% % 图片位置说明：此处建议插入“最终编队位置示意图” \begin{figure}[H]
+% \centering \includegraphics[width=0.72\textwidth]{此处替换为图片路径} \caption{最终编队位置示意图} \label{fig:q1_final}
+% \end{figure}
 
 \subsection{问题二的模型建立与求解}
 \subsubsection{模型建立}
