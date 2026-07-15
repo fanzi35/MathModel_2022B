@@ -329,8 +329,9 @@ def save_tables(
     result_table: pd.DataFrame,
 ) -> None:
     """保存结果表格。"""
+    export_round_table = round_table.iloc[:, :3].copy()
     angle_lookup_table.to_csv(TABLE_DIR / "angle_lookup_table.csv", index=False, encoding="utf-8-sig")
-    round_table.to_csv(TABLE_DIR / "greedy_round_selection.csv", index=False, encoding="utf-8-sig")
+    export_round_table.to_csv(TABLE_DIR / "greedy_round_selection.csv", index=False, encoding="utf-8-sig")
     result_table.to_csv(TABLE_DIR / "final_result_table.csv", index=False, encoding="utf-8-sig")
 
 
