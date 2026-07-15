@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from config.params import CENTER_ID, FIXED_TRANSMITTER_ID, FORMATION_COUNT, FORMATION_RADIUS, GEOMETRY_TOL
+from config.params import CENTER_ID, FIXED_TRANSMITTER_ID, FORMATION_COUNT, FORMATION_RADIUS, GEOMETRY_TOL, Q2_FIXED_CENTER_ID
 
 
 def configure_matplotlib() -> None:
@@ -241,3 +241,170 @@ def make_result_dataframe(final_positions: dict[int, np.ndarray]) -> pd.DataFram
             }
         )
     return pd.DataFrame(rows)
+
+
+def build_q2_ideal_positions(edge_length: float) -> pd.DataFrame:
+    """生成第二问锥形编队的理想坐标。"""
+    sqrt3 = np.sqrt(3.0)
+    rows = [
+        {"drone_id": 1, "x": 1.5 * edge_length, "y": -0.5 * sqrt3 * edge_length},
+        {"drone_id": 2, "x": 1.0 * edge_length, "y": 0.0 * edge_length},
+        {"drone_id": 3, "x": 0.5 * edge_length, "y": -0.5 * sqrt3 * edge_length},
+        {"drone_id": 4, "x": 0.5 * edge_length, "y": 0.5 * sqrt3 * edge_length},
+        {"drone_id": 5, "x": 0.0, "y": 0.0},
+        {"drone_id": 6, "x": -0.5 * edge_length, "y": -0.5 * sqrt3 * edge_length},
+        {"drone_id": 7, "x": 0.0, "y": 1.0 * sqrt3 * edge_length},
+        {"drone_id": 8, "x": -0.5 * edge_length, "y": 0.5 * sqrt3 * edge_length},
+        {"drone_id": 9, "x": -1.0 * edge_length, "y": 0.0 * edge_length},
+        {"drone_id": 10, "x": -1.5 * edge_length, "y": -0.5 * sqrt3 * edge_length},
+        {"drone_id": 11, "x": -0.5 * edge_length, "y": 1.5 * sqrt3 * edge_length},
+        {"drone_id": 12, "x": -1.0 * edge_length, "y": 1.0 * sqrt3 * edge_length},
+        {"drone_id": 13, "x": -1.5 * edge_length, "y": 0.5 * sqrt3 * edge_length},
+        {"drone_id": 14, "x": -2.0 * edge_length, "y": 0.0 * edge_length},
+        {"drone_id": 15, "x": -2.5 * edge_length, "y": -0.5 * sqrt3 * edge_length},
+    ]
+    result = pd.DataFrame(rows)
+    polar = result.apply(lambda row: cartesian_to_polar(np.array([row["x"], row["y"]], dtype=float)), axis=1)
+    result["radius"] = polar.map(lambda item: item[0])
+    result["theta_deg"] = polar.map(lambda item: item[1])
+    return result[["drone_id", "radius", "theta_deg", "x", "y"]]
+
+
+def build_q2_groups() -> list[dict[str, object]]:
+    """构造第二问的三个局部圆与三条边界分组。"""
+    return [
+        {"name": "hex_05", "kind": "hex", "members": [5, 2, 3, 6, 9, 8, 4]},
+        {"name": "hex_08", "kind": "hex", "members": [8, 5, 4, 7, 12, 13, 9]},
+        {"name": "hex_09", "kind": "hex", "members": [9, 5, 8, 13, 14, 10, 6]},
+        {"name": "boundary_top", "kind": "boundary", "members": [11, 7, 4, 2, 1]},
+        {"name": "boundary_bottom", "kind": "boundary", "members": [15, 10, 6, 3, 1]},
+        {"name": "boundary_left", "kind": "boundary", "members": [11, 12, 13, 14, 15]},
+    ]
+
+
+def build_q2_edge_targets(edge_length: float) -> dict[tuple[int, int], float]:
+    """生成第二问总损失函数对应的目标边集。"""
+    edge_targets: dict[tuple[int, int], float] = {}
+    groups = build_q2_groups()
+    for group in groups:
+        members = list(group["members"])
+        if group["kind"] == "hex":
+            center = members[0]
+            ring = members[1:]
+            for node_id in ring:
+                edge_targets[tuple(sorted((center, node_id)))] = edge_length
+            for left, right in zip(ring, ring[1:] + ring[:1]):
+                edge_targets[tuple(sorted((left, right)))] = edge_length
+        else:
+            for start_index, left in enumerate(members):
+                for right_index in range(start_index + 1, len(members)):
+                    right = members[right_index]
+                    edge_targets[tuple(sorted((left, right)))] = edge_length * (right_index - start_index)
+    return edge_targets
+
+
+def q2_total_loss(positions: dict[int, np.ndarray], edge_targets: dict[tuple[int, int], float]) -> float:
+    """计算第二问总损失函数。"""
+    return float(
+        sum((np.linalg.norm(positions[i] - positions[j]) - distance) ** 2 for (i, j), distance in edge_targets.items())
+    )
+
+
+def generate_q2_initial_positions(
+    ideal_positions: dict[int, np.ndarray],
+    radius_perturb: float,
+    angle_perturb_deg: float,
+    seed: int,
+) -> dict[int, np.ndarray]:
+    """在给定偏差范围内随机生成第二问初始状态。"""
+    rng = np.random.default_rng(seed)
+    positions: dict[int, np.ndarray] = {}
+    for drone_id, point in ideal_positions.items():
+        radius, theta_deg = cartesian_to_polar(point)
+        if radius <= GEOMETRY_TOL:
+            sampled_radius = float(rng.uniform(0.0, radius_perturb))
+            sampled_theta = float(rng.uniform(0.0, 360.0))
+        else:
+            sampled_radius = max(0.0, radius + float(rng.uniform(-radius_perturb, radius_perturb)))
+            sampled_theta = theta_deg + float(rng.uniform(-angle_perturb_deg, angle_perturb_deg))
+        positions[drone_id] = polar_to_cartesian(sampled_radius, sampled_theta)
+    return positions
+
+
+def make_polar_state_table(positions: dict[int, np.ndarray]) -> pd.DataFrame:
+    """把位置字典整理成编号、极径、极角表。"""
+    rows: list[dict[str, float | int]] = []
+    for drone_id in sorted(positions):
+        radius, theta_deg = cartesian_to_polar(positions[drone_id])
+        rows.append({"无人机编号": drone_id, "极径": radius, "极角(度)": theta_deg})
+    return pd.DataFrame(rows)
+
+
+def fit_rigid_template(current_points: np.ndarray, template_points: np.ndarray) -> np.ndarray:
+    """将理想模板刚体配准到当前点集。"""
+    current_center = current_points.mean(axis=0)
+    template_center = template_points.mean(axis=0)
+    current_shift = current_points - current_center
+    template_shift = template_points - template_center
+    covariance = template_shift.T @ current_shift
+    u_matrix, _, vt_matrix = np.linalg.svd(covariance)
+    rotation = vt_matrix.T @ u_matrix.T
+    if np.linalg.det(rotation) < 0:
+        vt_matrix[-1, :] *= -1.0
+        rotation = vt_matrix.T @ u_matrix.T
+    transformed = template_shift @ rotation.T + current_center
+    return transformed
+
+
+def generate_q2_initial_positions_strict(
+    ideal_positions: dict[int, np.ndarray],
+    radius_perturb: float,
+    angle_perturb_deg: float,
+    seed: int,
+) -> dict[int, np.ndarray]:
+    """生成第二问随机初始状态，并固定模板中心节点。"""
+    rng = np.random.default_rng(seed)
+    positions: dict[int, np.ndarray] = {}
+    for drone_id, point in ideal_positions.items():
+        if drone_id == Q2_FIXED_CENTER_ID:
+            positions[drone_id] = point.copy()
+            continue
+
+        radius, theta_deg = cartesian_to_polar(point)
+        sampled_radius = max(0.0, radius + float(rng.uniform(-radius_perturb, radius_perturb)))
+        sampled_theta = theta_deg + float(rng.uniform(-angle_perturb_deg, angle_perturb_deg))
+        positions[drone_id] = polar_to_cartesian(sampled_radius, sampled_theta)
+    return positions
+
+
+def make_q2_state_table(positions: dict[int, np.ndarray]) -> pd.DataFrame:
+    """整理第二问状态表，只输出编号、极径、极角。"""
+    rows: list[dict[str, float | int]] = []
+    for drone_id in sorted(positions):
+        radius, theta_deg = cartesian_to_polar(positions[drone_id])
+        rows.append({"无人机编号": drone_id, "极径": round(radius, 6), "极角": round(theta_deg, 6)})
+    return pd.DataFrame(rows)
+
+
+def minimal_angle_difference_deg(angle_a: float, angle_b: float) -> float:
+    """计算两个角度的最小圆周差。"""
+    diff = abs(float(angle_a) - float(angle_b)) % 360.0
+    return min(diff, 360.0 - diff)
+
+
+def copy_positions(positions: dict[int, np.ndarray]) -> dict[int, np.ndarray]:
+    """复制位置字典。"""
+    return {drone_id: point.copy() for drone_id, point in positions.items()}
+
+
+def apply_group_move(
+    positions: dict[int, np.ndarray],
+    member_ids: list[int],
+    target_points: np.ndarray,
+    step_size: float,
+) -> dict[int, np.ndarray]:
+    """按给定步长将一个分组向局部目标移动。"""
+    updated = copy_positions(positions)
+    for index, drone_id in enumerate(member_ids):
+        updated[drone_id] = positions[drone_id] + step_size * (target_points[index] - positions[drone_id])
+    return updated
